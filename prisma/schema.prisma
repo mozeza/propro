@@ -1,0 +1,251 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Users ───────────────────────────────────────────────
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  password  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  clerkId   String?  @unique
+  tradingStyle   String?
+  experienceYears Int?
+  preferredMarkets String?
+  referralSource String?
+  totalChallenges Int     @default(0)
+  challengesPassed Int    @default(0)
+  totalCredits    Float   @default(0)
+  lifetimeCredits Float   @default(0)
+  level           Int     @default(1)
+  trades            Trade[]
+  challengeAttempts ChallengeAttempt[]
+  platformConnections PlatformConnection[]
+  rewardRedemptions  UserReward[]
+  competitionEntries CompetitionEntry[]
+  giveawayEntries   GiveawayEntry[]
+  giveawayWins      GiveawayWinner[]
+  creditTransactions CreditTransaction[]
+  affiliateClicks    AffiliateClick[]
+  referrals         Referral[]       @relation("Referrer")
+  referredBy        Referral?        @relation("ReferredUser")
+}
+
+model Firm {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  website   String
+  affiliateUrl String
+  category  String
+  programTypes String
+  challengePriceRange String
+  profitTarget String
+  maxDrawdown String
+  maxAccountSize String
+  trustpilotScore Float   @default(0)
+  reviewCount Int     @default(0)
+  foundedYear Int?
+  country    String?
+  description String?
+  features   String?
+  rating     Float   @default(0)
+  likesCount Int     @default(0)
+  isNew      Boolean @default(false)
+  discountCode String?
+  discountDescription String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  affiliateClicks AffiliateClick[]
+}
+
+model Trade {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  instrument String
+  direction  String
+  entryPrice Float
+  exitPrice  Float
+  lots       Float
+  date       DateTime
+  time       String?
+  notes      String?
+  pnl        Float
+  platform   String?
+  commission Float?
+  fees       Float?
+  netPnl     Float?
+  createdAt DateTime @default(now())
+}
+
+model ChallengeAttempt {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firmId    String?
+  firmName  String
+  challengeType String
+  amount    Float
+  passed    Boolean?
+  profitAchieved Float?
+  drawdownHit    Float?
+  daysTaken      Int?
+  attemptNumber  Int     @default(1)
+  status    String  @default("active")
+  createdAt DateTime @default(now())
+  completedAt DateTime?
+}
+
+model PlatformConnection {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platformId   String
+  platformName String
+  status       String  @default("connected")
+  lastSyncAt   DateTime?
+  metadata     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([userId, platformId])
+}
+
+model Reward {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  cost        Float
+  image       String?
+  category    String
+  stock       Int?
+  active      Boolean  @default(true)
+  createdAt DateTime @default(now())
+  redemptions UserReward[]
+}
+
+model UserReward {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rewardId  String
+  reward    Reward   @relation(fields: [rewardId], references: [id])
+  status    String   @default("pending")
+  redeemedAt DateTime @default(now())
+  @@unique([userId, rewardId])
+}
+
+model CreditTransaction {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount    Float
+  type      String
+  description String?
+  referenceId String?
+  createdAt DateTime @default(now())
+}
+
+model Competition {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  type        String
+  prize       String
+  prizeValue  Float?
+  startDate   DateTime
+  endDate     DateTime
+  status      String   @default("upcoming")
+  rules       String?
+  maxEntries  Int?
+  entryFee    Float    @default(0)
+  createdAt DateTime @default(now())
+  entries   CompetitionEntry[]
+}
+
+model CompetitionEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  competitionId String
+  competition  Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  score     Float?
+  rank      Int?
+  returnPct Float?
+  tradesCount Int?
+  prize     String?
+  joinedAt  DateTime @default(now())
+  @@unique([userId, competitionId])
+}
+
+model Giveaway {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  prize       String
+  prizeValue  Float?
+  startDate   DateTime
+  endDate     DateTime
+  status      String   @default("active")
+  winnerCount Int      @default(1)
+  entryCost   Float    @default(0)
+  createdAt DateTime @default(now())
+  entries   GiveawayEntry[]
+  winners   GiveawayWinner[]
+}
+
+model GiveawayEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  giveawayId String
+  giveaway  Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  enteredAt DateTime @default(now())
+  @@unique([userId, giveawayId])
+}
+
+model GiveawayWinner {
+  id        String   @id @default(cuid())
+  giveawayId String
+  giveaway  Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  prize     String
+  claimed   Boolean  @default(false)
+  claimedAt DateTime?
+  wonAt DateTime @default(now())
+}
+
+model AffiliateClick {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  firmId    String?
+  firm      Firm?    @relation(fields: [firmId], references: [id])
+  ip        String?
+  userAgent String?
+  referrer  String?
+  converted Boolean  @default(false)
+  conversionValue Float?
+  createdAt DateTime @default(now())
+}
+
+model Referral {
+  id        String   @id @default(cuid())
+  referrerId String
+  referrer  User     @relation("Referrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  referredId String  @unique
+  referred  User     @relation("ReferredUser", fields: [referredId], references: [id], onDelete: Cascade)
+  bonus     Float    @default(0)
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  completedAt DateTime?
+}
