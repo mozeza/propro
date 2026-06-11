@@ -1,23 +1,24 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const { apiKey, login, server, broker, trades, count } = body;
 
-    if (apiKey !== process.env.BRIDGE_API_KEY && apiKey !== 'propro-ea-key-2025') {
+    // Validation
+    if (apiKey !== 'propro-ea-key-2025') {
       return NextResponse.json({ success: false, error: 'Invalid API Key' }, { status: 401 });
     }
 
-    console.log(`[Vercel-Bridge] Received ${count} trades from account ${login}`);
+    console.log(`[Vercel-Bridge] RECEIVED DATA: Account ${login}, ${count} trades.`);
     
+    // Temporarily bypass DB to verify connectivity
     return NextResponse.json({
       success: true,
-      message: `Successfully received ${count} trades via Vercel.`,
+      message: `Success! Received ${count} trades from account ${login}. Bridge is LIVE.`,
     });
   } catch (e: any) {
-    console.error('[Vercel-Bridge] Error:', e.message);
+    console.error('[Vercel-Bridge] Critical Error:', e.message);
     return NextResponse.json({ success: false, error: e.message }, { status: 500 });
   }
 }
