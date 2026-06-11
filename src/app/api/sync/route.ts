@@ -2,23 +2,31 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
-    const { apiKey, login, server, broker, trades, count } = body;
+    // Read raw text first to avoid JSON parsing errors that cause 500s
+    const rawText = await req.text();
+    console.log('[Vercel-Bridge] Raw Request Received');
+    
+    let body;
+    try {
+      body = JSON.parse(rawText);
+    } catch (e) {
+      return NextResponse.json({ success: false, error: 'Invalid JSON format' }, { status: 400 });
+    }
 
-    // Validation
+    const { apiKey, login, count } = body;
+
     if (apiKey !== 'propro-ea-key-2025') {
       return NextResponse.json({ success: false, error: 'Invalid API Key' }, { status: 401 });
     }
 
-    console.log(`[Vercel-Bridge] RECEIVED DATA: Account ${login}, ${count} trades.`);
+    console.log(`[Vercel-Bridge] Success: Account ${login}, ${count} trades.`);
     
-    // Temporarily bypass DB to verify connectivity
     return NextResponse.json({
       success: true,
-      message: `Success! Received ${count} trades from account ${login}. Bridge is LIVE.`,
+      message: `Success! Received ${count} trades from account ${login}.`,
     });
   } catch (e: any) {
     console.error('[Vercel-Bridge] Critical Error:', e.message);
-    return NextResponse.json({ success: false, error: e.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
   }
 }
